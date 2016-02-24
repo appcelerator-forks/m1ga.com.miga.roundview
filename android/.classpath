@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="build/.apt_generated"/>
+	<classpathentry kind="lib" path="lib/classes.jar"/>
+	<!--<classpathentry kind="lib" path="lib/circular.jar"/>
+	<classpathentry kind="con" path="com.mikhaellopez.circularimageview.CircularImageView"/>-->
+	<classpathentry kind="con" path="com.makeramen.roundedimageview.RoundedImageView"/>
+
+	<classpathentry kind="output" path="bin"/>
+</classpath>

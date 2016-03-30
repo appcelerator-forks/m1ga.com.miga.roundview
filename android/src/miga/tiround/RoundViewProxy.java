@@ -21,6 +21,13 @@ import android.graphics.Bitmap;
 import android.widget.ImageView;
 import com.makeramen.roundedimageview.RoundedImageView;
 import android.graphics.Color;
+import android.webkit.URLUtil;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.io.BufferedInputStream;
+import android.graphics.BitmapFactory;
 
 @Kroll.proxy(creatableInModule = TiRoundModule.class)
 public class RoundViewProxy extends TiViewProxy {
@@ -34,6 +41,10 @@ public class RoundViewProxy extends TiViewProxy {
     String borderColor = "#000000";
     boolean isOval = false;
     boolean isMutated = true;
+    private static TiBlob imgObj = null;
+    private static RoundedImageView circularImageView;
+    public static final String URL_REGEX = "^((https?|ftp)://|(www|ftp)\\.)?[a-z0-9-]+(\\.[a-z0-9-]+)+([/?].*)?$";
+    
 
     public RoundViewProxy() {
         super();
@@ -90,11 +101,40 @@ public class RoundViewProxy extends TiViewProxy {
 
             LayoutInflater inflater     = LayoutInflater.from(getActivity());
             videoWrapper = inflater.inflate(resId_videoHolder, null);
+            circularImageView = (RoundedImageView)videoWrapper.findViewById(resId_video);
+            
+            Pattern p = Pattern.compile(URL_REGEX);
+            Matcher m = p.matcher(imageSrc);//replace with string to compare
 
-            TiBlob imgObj = loadImageFromApplication(imageSrc);
+            if(m.find()) {                
+                
+                Thread thread = new Thread(new Runnable(){
+                    @Override
+                    public void run() {
+                        try {
+                            
+                            imgObj = getRemoteImage(new URL(imageSrc));  
+                            setImage(); 
+                        } catch (Exception e) {
+                            Log.e("round","REMOTE error");
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                thread.start();        
+            } else {
+                               
+                imgObj = loadImageFromApplication(imageSrc);
+            }
+            
+            if (imgObj!=null){
+                setImage();
+            }
+            setNativeView(videoWrapper);
+        }
+
+        private void setImage(){
             TiDrawableReference ref = TiDrawableReference.fromBlob(proxy.getActivity(), imgObj);
-
-            RoundedImageView circularImageView = (RoundedImageView)videoWrapper.findViewById(resId_video);
             circularImageView.setImageBitmap(ref.getBitmap());
             circularImageView.setBorderColor(Color.parseColor(borderColor));
             if (borderWidth > 0) {
@@ -108,7 +148,6 @@ public class RoundViewProxy extends TiViewProxy {
             circularImageView.setOval(isOval);
             // circularImageView.setTileModeX(Shader.TileMode.REPEAT);
             // circularImageView.setTileModeY(Shader.TileMode.REPEAT);
-            setNativeView(videoWrapper);
         }
 
         @Override
@@ -116,6 +155,21 @@ public class RoundViewProxy extends TiViewProxy {
             super.processProperties(d);
         }
 
+        public TiBlob getRemoteImage(final URL aURL) {
+            try {
+                final URLConnection conn = aURL.openConnection();
+                conn.connect();
+                final BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
+                final Bitmap bm = BitmapFactory.decodeStream(bis);
+                bis.close();
+                TiBlob result = TiBlob.blobFromImage(bm);
+                return result;
+            } catch (IOException e) {
+                Log.e("round","Error fetching url");
+            }
+            return null;
+        }
+        
         private String getPathToApplicationAsset(String assetName) {
             String result = resolveUrl(null, assetName);
             return result;
@@ -126,9 +180,7 @@ public class RoundViewProxy extends TiViewProxy {
             try {
                 // Load the image from the application assets
                 String url = getPathToApplicationAsset(imageName);
-                TiBaseFile file = TiFileFactory.createTitaniumFile(new String[] {
-                    url
-                }, false);
+                TiBaseFile file = TiFileFactory.createTitaniumFile(new String[] {url}, false);
                 Bitmap bitmap = TiUIHelper.createBitmap(file.getInputStream());
                 result = TiBlob.blobFromImage(bitmap);
             } catch (IOException e) {

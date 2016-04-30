@@ -57,16 +57,27 @@ public class RoundViewProxy extends TiViewProxy {
         TiUIView view = new RoundView(this);
         return view;
     }
+    
+    @Kroll.setProperty @Kroll.method
+    public void setImage(String url) {        
+        imageSrc = url;
+        openImage();          
+    }
+    
+    // Handle creation options
+    @Override
+    public void handleCreationArgs(KrollModule createdInModule, Object[] args) {
+    }
 
     // Handle creation options
     @Override
     public void handleCreationDict(KrollDict options) {
         super.handleCreationDict(options);
-
+        
         if (options.containsKey("image")) {
             imageSrc = options.getString("image");
         }
-
+    
         if (options.containsKey("cornerradius")) {
             cornerRadius = options.getInt("cornerradius");
         }
@@ -83,6 +94,89 @@ public class RoundViewProxy extends TiViewProxy {
         if (options.containsKey("isMutated")) {
             isMutated = options.getBoolean("isMutated");
         }
+    }
+
+    private void openImage(){
+        Pattern p = Pattern.compile(URL_REGEX);
+        if (imageSrc!=null){
+            Matcher m = p.matcher(imageSrc);//replace with string to compare
+
+            if(m.find()) {                
+                
+                Thread thread = new Thread(new Runnable(){
+                    @Override
+                    public void run() {
+                        try {
+                            
+                            imgObj = getRemoteImage(new URL(imageSrc));  
+                            loadImage(); 
+                        } catch (Exception e) {
+                            Log.e("round","REMOTE error");
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                thread.start();        
+            } else {
+                imgObj = loadImageFromApplication(imageSrc);
+            }
+
+            if (imgObj!=null){
+                loadImage();
+            }
+        }
+    }
+    
+    public void loadImage(){
+        TiDrawableReference ref = TiDrawableReference.fromBlob(activity, imgObj);
+        circularImageView.setImageBitmap(ref.getBitmap());
+        circularImageView.setBorderColor(Color.parseColor(borderColor));
+        if (borderWidth > 0) {
+            circularImageView.setBorderWidth((float)borderWidth);
+        }
+        //circularImageView.setScaleType(ScaleType.CENTER_CROP);
+        circularImageView.setCornerRadius((float)cornerRadius);
+        circularImageView.mutateBackground(isMutated);
+        // circularImageView.setImageDrawable(drawable);
+        // circularImageView.setBackground(backgroundDrawable);
+        circularImageView.setOval(isOval);
+        // circularImageView.setTileModeX(Shader.TileMode.REPEAT);
+        // circularImageView.setTileModeY(Shader.TileMode.REPEAT);
+    }
+    
+    public TiBlob loadImageFromApplication(String imageName) {
+        TiBlob result = null;
+        try {
+            // Load the image from the application assets
+            String url = getPathToApplicationAsset(imageName);
+            TiBaseFile file = TiFileFactory.createTitaniumFile(new String[] {url}, false);
+            Bitmap bitmap = TiUIHelper.createBitmap(file.getInputStream());
+            result = TiBlob.blobFromImage(bitmap);
+        } catch (IOException e) {
+            Log.e("RoundView", " EXCEPTION - IO");
+        }
+        return result;
+    }
+    
+    
+    private String getPathToApplicationAsset(String assetName) {
+        String result = resolveUrl(null, assetName);
+        return result;
+    }
+    
+    public TiBlob getRemoteImage(final URL aURL) {
+        try {
+            final URLConnection conn = aURL.openConnection();
+            conn.connect();
+            final BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
+            final Bitmap bm = BitmapFactory.decodeStream(bis);
+            bis.close();
+            TiBlob result = TiBlob.blobFromImage(bm);
+            return result;
+        } catch (IOException e) {
+            Log.e("round","Error fetching url");
+        }
+        return null;
     }
 
     private class RoundView extends TiUIView {
@@ -103,91 +197,40 @@ public class RoundViewProxy extends TiViewProxy {
             videoWrapper = inflater.inflate(resId_videoHolder, null);
             circularImageView = (RoundedImageView)videoWrapper.findViewById(resId_video);
             
-            Pattern p = Pattern.compile(URL_REGEX);
-            Matcher m = p.matcher(imageSrc);//replace with string to compare
-
-            if(m.find()) {                
-                
-                Thread thread = new Thread(new Runnable(){
-                    @Override
-                    public void run() {
-                        try {
-                            
-                            imgObj = getRemoteImage(new URL(imageSrc));  
-                            setImage(); 
-                        } catch (Exception e) {
-                            Log.e("round","REMOTE error");
-                            e.printStackTrace();
-                        }
-                    }
-                });
-                thread.start();        
-            } else {
-                               
-                imgObj = loadImageFromApplication(imageSrc);
-            }
+            openImage();
             
-            if (imgObj!=null){
-                setImage();
-            }
             setNativeView(videoWrapper);
         }
 
-        private void setImage(){
-            TiDrawableReference ref = TiDrawableReference.fromBlob(proxy.getActivity(), imgObj);
-            circularImageView.setImageBitmap(ref.getBitmap());
-            circularImageView.setBorderColor(Color.parseColor(borderColor));
-            if (borderWidth > 0) {
-                circularImageView.setBorderWidth((float)borderWidth);
-            }
-            //circularImageView.setScaleType(ScaleType.CENTER_CROP);
-            circularImageView.setCornerRadius((float)cornerRadius);
-            circularImageView.mutateBackground(isMutated);
-            // circularImageView.setImageDrawable(drawable);
-            // circularImageView.setBackground(backgroundDrawable);
-            circularImageView.setOval(isOval);
-            // circularImageView.setTileModeX(Shader.TileMode.REPEAT);
-            // circularImageView.setTileModeY(Shader.TileMode.REPEAT);
-        }
+    
 
         @Override
         public void processProperties(KrollDict d) {
             super.processProperties(d);
-        }
-
-        public TiBlob getRemoteImage(final URL aURL) {
-            try {
-                final URLConnection conn = aURL.openConnection();
-                conn.connect();
-                final BufferedInputStream bis = new BufferedInputStream(conn.getInputStream());
-                final Bitmap bm = BitmapFactory.decodeStream(bis);
-                bis.close();
-                TiBlob result = TiBlob.blobFromImage(bm);
-                return result;
-            } catch (IOException e) {
-                Log.e("round","Error fetching url");
+            
+            if (d.containsKey("image")) {
+    			imageSrc = d.getString("image");
             }
-            return null;
+            
+            if (d.containsKey("cornerradius")) {
+                cornerRadius = d.getInt("cornerradius");
+            }
+            if (d.containsKey("borderwidth")) {
+                borderWidth = d.getInt("borderwidth");
+            }
+            if (d.containsKey("bordercolor")) {
+                borderColor = d.getString("bordercolor");
+            }
+
+            if (d.containsKey("isOval")) {
+                isOval = d.getBoolean("isOval");
+            }
+            if (d.containsKey("isMutated")) {
+                isMutated = d.getBoolean("isMutated");
+            }
+            openImage();
         }
         
-        private String getPathToApplicationAsset(String assetName) {
-            String result = resolveUrl(null, assetName);
-            return result;
-        }
-
-        public TiBlob loadImageFromApplication(String imageName) {
-            TiBlob result = null;
-            try {
-                // Load the image from the application assets
-                String url = getPathToApplicationAsset(imageName);
-                TiBaseFile file = TiFileFactory.createTitaniumFile(new String[] {url}, false);
-                Bitmap bitmap = TiUIHelper.createBitmap(file.getInputStream());
-                result = TiBlob.blobFromImage(bitmap);
-            } catch (IOException e) {
-                Log.e("RoundView", " EXCEPTION - IO");
-            }
-            return result;
-        }
-
     }
+    
 }

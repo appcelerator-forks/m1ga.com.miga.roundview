@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.io.BufferedInputStream;
 import android.graphics.BitmapFactory;
+import android.content.pm.PackageManager;
 
 @Kroll.proxy(creatableInModule = TiRoundModule.class)
 public class RoundViewProxy extends TiViewProxy {
@@ -67,6 +68,7 @@ public class RoundViewProxy extends TiViewProxy {
     // Handle creation options
     @Override
     public void handleCreationArgs(KrollModule createdInModule, Object[] args) {
+        super.handleCreationArgs(createdInModule, args);
     }
 
     // Handle creation options
@@ -94,6 +96,7 @@ public class RoundViewProxy extends TiViewProxy {
         if (options.containsKey("isMutated")) {
             isMutated = options.getBoolean("isMutated");
         }
+        openImage();
     }
 
     private void openImage(){
@@ -106,10 +109,12 @@ public class RoundViewProxy extends TiViewProxy {
                 Thread thread = new Thread(new Runnable(){
                     @Override
                     public void run() {
-                        try {
-                            
+                        try {                            
                             imgObj = getRemoteImage(new URL(imageSrc));  
-                            loadImage(); 
+                            Log.i("img", imgObj + "");
+                            if (imgObj!=null){
+                                loadImage(); 
+                            }
                         } catch (Exception e) {
                             Log.e("round","REMOTE error");
                             e.printStackTrace();
@@ -165,6 +170,16 @@ public class RoundViewProxy extends TiViewProxy {
     }
     
     public TiBlob getRemoteImage(final URL aURL) {
+        
+        
+        int check = TiApplication.getInstance().getRootActivity().checkCallingOrSelfPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+		if (check == PackageManager.PERMISSION_GRANTED) {
+            
+		} else {
+			// only video - no sound
+			Log.e("RoundView", "App doesn't have WRITE_EXTERNAL_STORAGE permission");			
+		}
+        
         try {
             final URLConnection conn = aURL.openConnection();
             conn.connect();
@@ -174,8 +189,9 @@ public class RoundViewProxy extends TiViewProxy {
             TiBlob result = TiBlob.blobFromImage(bm);
             return result;
         } catch (IOException e) {
-            Log.e("round","Error fetching url");
+            Log.e("round","Error fetching url " + e);
         }
+        
         return null;
     }
 

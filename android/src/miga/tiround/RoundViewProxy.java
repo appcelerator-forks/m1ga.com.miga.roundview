@@ -47,7 +47,7 @@ public class RoundViewProxy extends TiViewProxy {
     boolean isMutated = true;
     private TiBlob imgObj = null;
     private RoundedImageView circularImageView;
-    public static final String URL_REGEX = "^((https?|ftp)://|(www|ftp)\\.)?[a-z0-9-]+(\\.[a-z0-9-]+)+([/?].*)?$";
+    private String URL_REGEX = "^((https?|ftp)://|(www|ftp)\\.)?[a-z0-9-]+(\\.[a-z0-9-]+)+([/?].*)?$";
     
 
     public RoundViewProxy() {
@@ -221,15 +221,15 @@ public class RoundViewProxy extends TiViewProxy {
             String packageName = proxy.getActivity().getPackageName();
             Resources resources = proxy.getActivity().getResources();
             View videoWrapper;
-            int resId_videoHolder = -1;
-            int resId_video       = -1;
+            int idLayout = -1;
+            int idRoundview = -1;
 
-            resId_videoHolder = resources.getIdentifier("layout", "layout", packageName);
-            resId_video       = resources.getIdentifier("roundimage", "id", packageName);
+            idLayout = resources.getIdentifier("layout", "layout", packageName);
+            idRoundview = resources.getIdentifier("roundimage", "id", packageName);
 
-            LayoutInflater inflater     = LayoutInflater.from(getActivity());
-            videoWrapper = inflater.inflate(resId_videoHolder, null);
-            circularImageView = (RoundedImageView)videoWrapper.findViewById(resId_video);
+            LayoutInflater inflater = LayoutInflater.from(getActivity());
+            videoWrapper = inflater.inflate(idLayout, null);
+            circularImageView = (RoundedImageView)videoWrapper.findViewById(idRoundview);
 
             setNativeView(videoWrapper);
         }

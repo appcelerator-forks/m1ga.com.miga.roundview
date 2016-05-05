@@ -13,7 +13,7 @@ copyright: Copyright (c) 2013 Michael Gangolf
 # these should not be edited
 name: roundview
 moduleid: com.miga.roundview
-#respackage: com.makeramen.roundedimageview
+respackage: com.makeramen.roundedimageview
 guid: daead781-21e3-4555-8bfc-f6645aee1116
 platform: android
 minsdk: 5.1.2.GA

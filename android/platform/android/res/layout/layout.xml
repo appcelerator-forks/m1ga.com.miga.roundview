@@ -1,20 +1,17 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
     android:background="#ffffff"
     android:orientation="vertical">
 
-    <!--<com.mikhaellopez.circularimageview.CircularImageView android:id="@+id/gif_view" app:civ_border="false" android:layout_height="match_parent" android:layout_width="match_parent"/>-->
-
+    
     <com.makeramen.roundedimageview.RoundedImageView
             xmlns:app="http://schemas.android.com/apk/res-auto"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:id="@+id/roundimage"
             android:scaleType="fitCenter"
-            app:riv_mutate_background="true"
             />
 </LinearLayout>
